@@ -1,0 +1,52 @@
+#!/bin/sh -e
+#
+# rc.local
+#
+# This script is executed at the end of each multiuser runlevel.
+# Make sure that the script will "exit 0" on success or any other
+# value on error.
+#
+# In order to enable or disable this script just change the execution
+# bits.
+#
+# By default this script does nothing.
+
+#this is trigger of the whole process
+file="/boot/wpa_supplicant.conf"
+#if the file is not there do nothing
+if [ -f "$file" ]
+then
+    #update the wpa_supplicant.conf file to gain access to the wifi
+	cat "$file" > /etc/wpa_supplicant/wpa_supplicant.conf
+	count=$((1))
+	end=$((10))
+    #we wait about 10s for the wifi to be on
+	while ! /bin/ping -c 1 8.8.8.8 
+	do
+		if [ $count -gt $end ]
+		then
+			break
+		fi
+		sleep 1
+		echo "$count"
+		count=$((count + 1))
+		
+	done
+    #after 10s or there's internet, check for the internet
+	if /bin/ping -c 1 8.8.8.8
+	then
+        #if there's internet, execute the script to update
+		echo internet!!!
+		/smshandler.py
+	else
+        #else just type the password out
+		sleep 1
+		/duckpi.sh /payload.dd
+	fi
+else
+    #doing something if wpa_supplicant.conf is not there
+	/usr/bin/printf "         My IP address is\033[0;31m `/sbin/ifconfig | grep "inet addr" | grep -v "127.0.0.1" | awk '{ print $2 }' | awk -F: '{ print $2 }'` \033[0m\n" > /dev/console
+	sleep 2
+
+fi
+exit 0
